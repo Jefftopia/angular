@@ -630,6 +630,7 @@ export function createHostDirectivesMappingArray(mapping: Record<string, string>
 
 /**
  * Compiles the dependency resolver function for a defer block.
+ * // wip
  */
 export function compileDeferResolverFunction(meta: R3DeferResolverFunctionMetadata):
     o.ArrowFunctionExpr {

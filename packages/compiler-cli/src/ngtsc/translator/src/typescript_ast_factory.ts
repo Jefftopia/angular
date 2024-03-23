@@ -105,6 +105,7 @@ export class TypeScriptAstFactory implements AstFactory<ts.Statement, ts.Express
 
   createExpressionStatement = ts.factory.createExpressionStatement;
 
+  // wip
   createDynamicImport(url: string) {
     return ts.factory.createCallExpression(
         ts.factory.createToken(ts.SyntaxKind.ImportKeyword) as ts.Expression,

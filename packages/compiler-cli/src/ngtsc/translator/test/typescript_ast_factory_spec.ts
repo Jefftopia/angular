@@ -52,6 +52,7 @@ describe('TypeScriptAstFactory', () => {
     });
   });
 
+  // wip
   describe('createDynamicImport()', () => {
     it('should create a dynamic import expression', () => {
       const {generate} = setupExpressions(``);

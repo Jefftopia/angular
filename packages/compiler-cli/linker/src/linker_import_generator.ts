@@ -22,6 +22,7 @@ export class LinkerImportGenerator<TStatement, TExpression> implements
   constructor(private factory: AstFactory<TStatement, TExpression>, private ngImport: TExpression) {
   }
 
+  // wip
   addImport(request: ImportRequest<null>): TExpression {
     this.assertModuleName(request.exportModuleSpecifier);
 

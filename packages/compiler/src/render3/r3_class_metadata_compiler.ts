@@ -73,6 +73,7 @@ function internalCompileClassMetadata(metadata: R3ClassMetadata): o.InvokeFuncti
  *
  * Similar to the `setClassMetadata` call, it's wrapped into the `ngDevMode`
  * check to tree-shake away this code in production mode.
+ * // wip
  */
 export function compileComponentClassMetadata(
     metadata: R3ClassMetadata, dependencies: R3DeferPerComponentDependency[]|null): o.Expression {

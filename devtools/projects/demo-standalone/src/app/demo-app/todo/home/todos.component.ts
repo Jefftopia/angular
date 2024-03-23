@@ -22,6 +22,7 @@ import {RouterLink} from '@angular/router';
 import {SamplePipe} from './sample.pipe';
 import {Todo, TodoComponent} from './todo.component';
 import {TooltipDirective} from './tooltip.directive';
+import {IpsumComponent} from './ipsum.component';
 
 export const enum TodoFilter {
   All = 'all',
@@ -56,13 +57,25 @@ const fib = (n: number): number => {
 
 @Component({
   selector: 'app-todos',
-  imports: [RouterLink, TodoComponent, SamplePipe, TodosFilter, TooltipDirective],
+  imports: [RouterLink, TodoComponent, SamplePipe, TodosFilter, TooltipDirective, IpsumComponent],
   standalone: true,
   template: `
     <a [routerLink]="">Home</a>
     <a [routerLink]="">Home</a>
     <a [routerLink]="">Home</a>
     <p>{{ 'Sample text processed by a pipe' | sample }}</p>
+    <section style="height: 1000px; width: 1000px; background: azure">
+      @defer(on hover; prefetch on idle) {
+        <app-ipsum></app-ipsum>
+      } @placeholder(minimum 1s) {
+        <p>placeholder...</p>
+      } @loading(minimum 1s) {
+        <p>loading...<p>
+      } @error {
+        <p>error deferring</p>
+      }
+    </section>
+
     <section class="todoapp">
       <header class="header">
         <h1>todos</h1>

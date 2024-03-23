@@ -5,6 +5,7 @@ package(default_visibility = ["//visibility:public"])
 ng_module(
     name = "home",
     srcs = [
+        "ipsum.component.ts",
         "sample.pipe.ts",
         "todo.component.ts",
         "todos.component.ts",
