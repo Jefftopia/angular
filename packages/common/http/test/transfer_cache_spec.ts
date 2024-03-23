@@ -7,7 +7,7 @@
  */
 
 import {DOCUMENT} from '@angular/common';
-import {ApplicationRef, Component, Injectable} from '@angular/core';
+import {ApplicationRef, Component, Injectable, PLATFORM_ID} from '@angular/core';
 import {makeStateKey, TransferState} from '@angular/core/src/transfer_state';
 import {fakeAsync, flush, TestBed} from '@angular/core/testing';
 import {withBody} from '@angular/private/testing';
@@ -50,9 +50,7 @@ describe('TransferCache', () => {
       TestBed.inject(HttpClient)
         .request(params?.method ?? 'GET', url, params)
         .subscribe((r) => (response = r));
-      TestBed.inject(HttpTestingController)
-        .expectOne(url)
-        .flush(body, {headers: params?.headers});
+      TestBed.inject(HttpTestingController).expectOne(url).flush(body, {headers: params?.headers});
       return response;
     }
 
@@ -82,6 +80,7 @@ describe('TransferCache', () => {
         TestBed.configureTestingModule({
           declarations: [SomeComponent],
           providers: [
+            {provide: PLATFORM_ID, useValue: 'browser'},
             {provide: DOCUMENT, useFactory: () => document},
             {provide: ApplicationRef, useClass: ApplicationRefPatched},
             withHttpTransferCache({}),
@@ -262,6 +261,12 @@ describe('TransferCache', () => {
       });
 
       makeRequestAndExpectOne('/test-auth', 'foo');
+    });
+
+    it('should skip transfer cache when platform is server', () => {
+      TestBed.overrideProvider(PLATFORM_ID, {useValue: 'server'});
+      makeRequestAndExpectOne('/test-1?foo=1', 'foo');
+      makeRequestAndExpectOne('/test-1?foo=1', 'foo');
     });
 
     describe('caching with global setting', () => {
