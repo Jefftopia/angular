@@ -19,6 +19,7 @@ import {
   ɵperformanceMarkFeature as performanceMarkFeature,
   ɵtruncateMiddle as truncateMiddle,
   ɵwhenStable as whenStable,
+  PLATFORM_ID,
 } from '@angular/core';
 import {Observable, of} from 'rxjs';
 import {tap} from 'rxjs/operators';
@@ -28,6 +29,7 @@ import {HttpHeaders} from './headers';
 import {HTTP_ROOT_INTERCEPTOR_FNS, HttpHandlerFn} from './interceptor';
 import {HttpRequest} from './request';
 import {HttpEvent, HttpResponse} from './response';
+import {isPlatformBrowser} from '@angular/common';
 
 /**
  * Options to configure how TransferCache should be used to cache requests made via HttpClient.
@@ -93,9 +95,11 @@ export function transferCacheInterceptorFn(
 ): Observable<HttpEvent<unknown>> {
   const {isCacheActive, ...globalOptions} = inject(CACHE_OPTIONS);
   const {transferCache: requestOptions, method: requestMethod} = req;
+  const isBrowser = isPlatformBrowser(PLATFORM_ID);
 
   // In the following situations we do not want to cache the request
   if (
+    isBrowser ||
     !isCacheActive ||
     // POST requests are allowed either globally or at request level
     (requestMethod === 'POST' && !globalOptions.includePostRequests && !requestOptions) ||
