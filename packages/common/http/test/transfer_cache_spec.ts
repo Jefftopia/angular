@@ -7,7 +7,7 @@
  */
 
 import {DOCUMENT} from '@angular/common';
-import {ApplicationRef, Component, Injectable} from '@angular/core';
+import {ApplicationRef, Component, Injectable, PLATFORM_ID} from '@angular/core';
 import {makeStateKey, TransferState} from '@angular/core/src/transfer_state';
 import {fakeAsync, flush, TestBed} from '@angular/core/testing';
 import {withBody} from '@angular/private/testing';
@@ -30,7 +30,18 @@ interface RequestParams {
   observe?: 'body' | 'response';
   transferCache?: {includeHeaders: string[]} | boolean;
   headers?: {[key: string]: string};
+  body?: RequestBody;
 }
+
+type RequestBody =
+  | ArrayBuffer
+  | Blob
+  | boolean
+  | string
+  | number
+  | Object
+  | (boolean | string | number | Object | null)[]
+  | null;
 
 describe('TransferCache', () => {
   @Component({selector: 'test-app-http', template: 'hello'})
@@ -39,20 +50,22 @@ describe('TransferCache', () => {
   describe('withHttpTransferCache', () => {
     let isStable: BehaviorSubject<boolean>;
 
-    function makeRequestAndExpectOne(url: string, body: string, params?: RequestParams): string;
     function makeRequestAndExpectOne(
       url: string,
-      body: string,
+      body: RequestBody,
+      params?: RequestParams,
+    ): string;
+    function makeRequestAndExpectOne(
+      url: string,
+      body: RequestBody,
       params?: RequestParams & {observe: 'response'},
     ): HttpResponse<string>;
-    function makeRequestAndExpectOne(url: string, body: string, params?: RequestParams): any {
+    function makeRequestAndExpectOne(url: string, body: RequestBody, params?: RequestParams): any {
       let response!: any;
       TestBed.inject(HttpClient)
         .request(params?.method ?? 'GET', url, params)
         .subscribe((r) => (response = r));
-      TestBed.inject(HttpTestingController)
-        .expectOne(url)
-        .flush(body, {headers: params?.headers});
+      TestBed.inject(HttpTestingController).expectOne(url).flush(body, {headers: params?.headers});
       return response;
     }
 
@@ -82,6 +95,7 @@ describe('TransferCache', () => {
         TestBed.configureTestingModule({
           declarations: [SomeComponent],
           providers: [
+            {provide: PLATFORM_ID, useValue: 'server'},
             {provide: DOCUMENT, useFactory: () => document},
             {provide: ApplicationRef, useClass: ApplicationRefPatched},
             withHttpTransferCache({}),
@@ -264,6 +278,41 @@ describe('TransferCache', () => {
       makeRequestAndExpectOne('/test-auth', 'foo');
     });
 
+    describe('caching in browser context', () => {
+      beforeEach(
+        withBody('<test-app-http></test-app-http>', () => {
+          TestBed.resetTestingModule();
+          isStable = new BehaviorSubject<boolean>(false);
+
+          @Injectable()
+          class ApplicationRefPatched extends ApplicationRef {
+            override isStable = new BehaviorSubject<boolean>(false);
+          }
+
+          TestBed.configureTestingModule({
+            declarations: [SomeComponent],
+            providers: [
+              {provide: PLATFORM_ID, useValue: 'browser'},
+              {provide: DOCUMENT, useFactory: () => document},
+              {provide: ApplicationRef, useClass: ApplicationRefPatched},
+              withHttpTransferCache({}),
+              provideHttpClient(),
+              provideHttpClientTesting(),
+            ],
+          });
+
+          const appRef = TestBed.inject(ApplicationRef);
+          appRef.bootstrap(SomeComponent);
+          isStable = appRef.isStable as BehaviorSubject<boolean>;
+        }),
+      );
+
+      it('should skip storing in transfer cache when platform is browser', () => {
+        makeRequestAndExpectOne('/test-1?foo=1', 'foo');
+        makeRequestAndExpectOne('/test-1?foo=1', 'foo');
+      });
+    });
+
     describe('caching with global setting', () => {
       beforeEach(
         withBody('<test-app-http></test-app-http>', () => {
@@ -278,6 +327,7 @@ describe('TransferCache', () => {
           TestBed.configureTestingModule({
             declarations: [SomeComponent],
             providers: [
+              {provide: PLATFORM_ID, useValue: 'server'},
               {provide: DOCUMENT, useFactory: () => document},
               {provide: ApplicationRef, useClass: ApplicationRefPatched},
               withHttpTransferCache({

@@ -19,6 +19,7 @@ import {
   ɵperformanceMarkFeature as performanceMarkFeature,
   ɵtruncateMiddle as truncateMiddle,
   ɵwhenStable as whenStable,
+  PLATFORM_ID,
 } from '@angular/core';
 import {Observable, of} from 'rxjs';
 import {tap} from 'rxjs/operators';
@@ -28,6 +29,8 @@ import {HttpHeaders} from './headers';
 import {HTTP_ROOT_INTERCEPTOR_FNS, HttpHandlerFn} from './interceptor';
 import {HttpRequest} from './request';
 import {HttpEvent, HttpResponse} from './response';
+import {isPlatformServer} from '@angular/common';
+import {HttpParams} from './params';
 
 /**
  * Options to configure how TransferCache should be used to cache requests made via HttpClient.
@@ -162,10 +165,12 @@ export function transferCacheInterceptorFn(
     );
   }
 
-  // Request not found in cache. Make the request and cache it.
+  const isServer = isPlatformServer(PLATFORM_ID);
+
+  // Request not found in cache. Make the request and cache it if on the server.
   return next(req).pipe(
     tap((event: HttpEvent<unknown>) => {
-      if (event instanceof HttpResponse) {
+      if (event instanceof HttpResponse && isServer) {
         transferState.set<TransferHttpResponse>(storeKey, {
           [BODY]: event.body,
           [HEADERS]: getFilteredHeaders(event.headers, headersToInclude),
@@ -198,17 +203,26 @@ function getFilteredHeaders(
   return headersMap;
 }
 
-function makeCacheKey(request: HttpRequest<any>): StateKey<TransferHttpResponse> {
-  // make the params encoded same as a url so it's easy to identify
-  const {params, method, responseType, url, body} = request;
-  const encodedParams = params
-    .keys()
+function sortAndConcatParams(params: HttpParams | URLSearchParams): string {
+  return [...params.keys()]
     .sort()
     .map((k) => `${k}=${params.getAll(k)}`)
     .join('&');
-  const strBody = typeof body === 'string' ? body : '';
-  const key = [method, responseType, url, strBody, encodedParams].join('|');
+}
 
+function makeCacheKey(request: HttpRequest<any>): StateKey<TransferHttpResponse> {
+  // make the params encoded same as a url so it's easy to identify
+  const {params, method, responseType, url} = request;
+  const encodedParams = sortAndConcatParams(params);
+
+  let serializedBody = request.serializeBody();
+  if (serializedBody instanceof URLSearchParams) {
+    serializedBody = sortAndConcatParams(serializedBody);
+  } else if (typeof serializedBody !== 'string') {
+    serializedBody = '';
+  }
+
+  const key = [method, responseType, url, serializedBody, encodedParams].join('|');
   const hash = generateHash(key);
 
   return makeStateKey(hash);
