@@ -29,7 +29,7 @@ import {HttpHeaders} from './headers';
 import {HTTP_ROOT_INTERCEPTOR_FNS, HttpHandlerFn} from './interceptor';
 import {HttpRequest} from './request';
 import {HttpEvent, HttpResponse} from './response';
-import {isPlatformBrowser, isPlatformServer} from '@angular/common';
+import {isPlatformServer} from '@angular/common';
 
 /**
  * Options to configure how TransferCache should be used to cache requests made via HttpClient.
@@ -164,9 +164,9 @@ export function transferCacheInterceptorFn(
     );
   }
 
-  // Request not found in cache. Make the request and cache it if on the server.
   const isServer = isPlatformServer(PLATFORM_ID);
 
+  // Request not found in cache. Make the request and cache it if on the server.
   return next(req).pipe(
     tap((event: HttpEvent<unknown>) => {
       if (event instanceof HttpResponse && isServer) {
