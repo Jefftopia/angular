@@ -29,7 +29,7 @@ import {HttpHeaders} from './headers';
 import {HTTP_ROOT_INTERCEPTOR_FNS, HttpHandlerFn} from './interceptor';
 import {HttpRequest} from './request';
 import {HttpEvent, HttpResponse} from './response';
-import {isPlatformBrowser} from '@angular/common';
+import {isPlatformBrowser, isPlatformServer} from '@angular/common';
 
 /**
  * Options to configure how TransferCache should be used to cache requests made via HttpClient.
@@ -95,11 +95,9 @@ export function transferCacheInterceptorFn(
 ): Observable<HttpEvent<unknown>> {
   const {isCacheActive, ...globalOptions} = inject(CACHE_OPTIONS);
   const {transferCache: requestOptions, method: requestMethod} = req;
-  const isBrowser = isPlatformBrowser(PLATFORM_ID);
 
   // In the following situations we do not want to cache the request
   if (
-    isBrowser ||
     !isCacheActive ||
     // POST requests are allowed either globally or at request level
     (requestMethod === 'POST' && !globalOptions.includePostRequests && !requestOptions) ||
@@ -166,10 +164,12 @@ export function transferCacheInterceptorFn(
     );
   }
 
-  // Request not found in cache. Make the request and cache it.
+  // Request not found in cache. Make the request and cache it if on the server.
+  const isServer = isPlatformServer(PLATFORM_ID);
+
   return next(req).pipe(
     tap((event: HttpEvent<unknown>) => {
-      if (event instanceof HttpResponse) {
+      if (event instanceof HttpResponse && isServer) {
         transferState.set<TransferHttpResponse>(storeKey, {
           [BODY]: event.body,
           [HEADERS]: getFilteredHeaders(event.headers, headersToInclude),
