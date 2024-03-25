@@ -57,6 +57,7 @@ import {
 } from './url_tree';
 import {standardizeConfig, validateConfig} from './utils/config';
 import {afterNextNavigation} from './utils/navigations';
+import {ActivatedRouteSnapshot} from './router_state';
 
 function defaultErrorHandler(error: any): never {
   throw error;
@@ -457,7 +458,7 @@ export class Router {
         q = {...this.currentUrlTree.queryParams, ...queryParams};
         break;
       case 'preserve':
-        q = this.currentUrlTree.queryParams;
+        q = {...this.currentUrlTree.queryParams};
         break;
       default:
         q = queryParams || null;
@@ -468,7 +469,9 @@ export class Router {
 
     let relativeToUrlSegmentGroup: UrlSegmentGroup | undefined;
     try {
-      const relativeToSnapshot = relativeTo ? relativeTo.snapshot : this.routerState.snapshot.root;
+      const relativeToSnapshot = relativeTo
+        ? relativeTo.snapshot
+        : this.createNewSnapshotFromRoot();
       relativeToUrlSegmentGroup = createSegmentGroupFromRoute(relativeToSnapshot);
     } catch (e: unknown) {
       // This is strictly for backwards compatibility with tests that create
@@ -620,6 +623,23 @@ export class Router {
 
     const urlTree = this.parseUrl(url);
     return containsTree(this.currentUrlTree, urlTree, options);
+  }
+
+  private createNewSnapshotFromRoot() {
+    const {url, queryParams, fragment, params, data, outlet, routeConfig, component, _resolve} =
+      this.routerState.snapshot.root;
+
+    return new ActivatedRouteSnapshot(
+      url,
+      params,
+      queryParams,
+      fragment,
+      data,
+      outlet,
+      component,
+      routeConfig,
+      _resolve,
+    );
   }
 
   private removeEmptyProps(params: Params): Params {
