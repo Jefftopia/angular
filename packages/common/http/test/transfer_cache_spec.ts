@@ -263,10 +263,39 @@ describe('TransferCache', () => {
       makeRequestAndExpectOne('/test-auth', 'foo');
     });
 
-    it('should skip transfer cache when platform is browser', () => {
-      TestBed.overrideProvider(PLATFORM_ID, {useValue: 'browser'});
-      makeRequestAndExpectOne('/test-1?foo=1', 'foo');
-      makeRequestAndExpectOne('/test-1?foo=1', 'foo');
+    describe('caching in browser context', () => {
+      beforeEach(
+        withBody('<test-app-http></test-app-http>', () => {
+          TestBed.resetTestingModule();
+          isStable = new BehaviorSubject<boolean>(false);
+
+          @Injectable()
+          class ApplicationRefPatched extends ApplicationRef {
+            override isStable = new BehaviorSubject<boolean>(false);
+          }
+
+          TestBed.configureTestingModule({
+            declarations: [SomeComponent],
+            providers: [
+              {provide: PLATFORM_ID, useValue: 'browser'},
+              {provide: DOCUMENT, useFactory: () => document},
+              {provide: ApplicationRef, useClass: ApplicationRefPatched},
+              withHttpTransferCache({}),
+              provideHttpClient(),
+              provideHttpClientTesting(),
+            ],
+          });
+
+          const appRef = TestBed.inject(ApplicationRef);
+          appRef.bootstrap(SomeComponent);
+          isStable = appRef.isStable as BehaviorSubject<boolean>;
+        }),
+      );
+
+      it('should skip storing in transfer cache when platform is browser', () => {
+        makeRequestAndExpectOne('/test-1?foo=1', 'foo');
+        makeRequestAndExpectOne('/test-1?foo=1', 'foo');
+      });
     });
 
     describe('caching with global setting', () => {
